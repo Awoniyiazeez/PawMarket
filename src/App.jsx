@@ -371,18 +371,18 @@ function App() {
     if (imageInput instanceof File) {
       const fileExt = imageInput.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-      const filePath = `dogs/${fileName}`;
 
+      // Enforced uppercase bucket target to match DOG-IMAGES in Supabase
       const { error: uploadError } = await supabase.storage
-        .from("dog-images")
-        .upload(filePath, imageInput);
+        .from("DOG-IMAGES")
+        .upload(fileName, imageInput, { upsert: true });
 
       if (uploadError) {
         console.error("Image Upload Error:", uploadError);
         throw new Error(`Storage upload failed: ${uploadError.message}`);
       }
 
-      const { data } = supabase.storage.from("dog-images").getPublicUrl(filePath);
+      const { data } = supabase.storage.from("DOG-IMAGES").getPublicUrl(fileName);
       return data.publicUrl;
     }
 
@@ -505,7 +505,7 @@ function App() {
         alert(`Failed to save listing: ${error.message}`);
         return false;
       } else if (data && data.length > 0) {
-        setDogs((prev) => [...prev, data[0]]);
+        await fetchDogs();
         alert("Item added successfully!");
         return true;
       }
@@ -541,7 +541,7 @@ function App() {
         alert(`Failed to update item: ${error.message}`);
         return false;
       } else if (data && data.length > 0) {
-        setDogs((prev) => prev.map((dog) => (dog.id === id ? data[0] : dog)));
+        await fetchDogs();
         alert("Item updated successfully!");
         return true;
       }
@@ -557,6 +557,7 @@ function App() {
     const { error } = await supabase.from("dogs").delete().eq("id", id);
     if (!error) {
       setDogs((prev) => prev.filter((dog) => dog.id !== id));
+      await fetchDogs();
     } else {
       alert(`Delete failed: ${error.message}`);
     }
